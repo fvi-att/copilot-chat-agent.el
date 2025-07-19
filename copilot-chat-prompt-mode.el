@@ -94,6 +94,11 @@ Optional argument BUFFER is the buffer to write data in."
       (progn
         (when (boundp 'copilot-chat--spinner-timer)
           (copilot-chat--spinner-stop instance))
+        ;; Process response for agent commands if agent mode is enabled
+        (when (and (boundp 'copilot-chat-agent-mode) copilot-chat-agent-mode)
+          (require 'copilot-chat-agent)
+          (let ((full-response (copilot-chat-agent--get-full-response instance)))
+            (copilot-chat-agent-process-response full-response instance)))
         (copilot-chat--write-buffer instance
                                     (copilot-chat--format-data
                                      instance "\n\n" 'answer)

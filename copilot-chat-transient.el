@@ -30,6 +30,7 @@
 (require 'transient)
 
 (require 'copilot-chat-command)
+(require 'copilot-chat-agent)
 
 ;;;###autoload (autoload 'copilot-chat-transient "copilot-chat" nil t)
 (transient-define-prefix
@@ -55,7 +56,8 @@
    ("s" "Send code to buffer" copilot-chat-send-to-buffer)]
   ["Tools"
    ("b" "Buffers" copilot-chat-transient-buffers)
-   ("c" "Code helpers" copilot-chat-transient-code)]])
+   ("c" "Code helpers" copilot-chat-transient-code)
+   ("A" "Agent" copilot-chat-transient-agent)]])
 
 ;;;###autoload (autoload 'copilot-chat-transient-buffers "copilot-chat" nil t)
 (transient-define-prefix
@@ -86,6 +88,25 @@
    ("F" "Explain function" copilot-chat-explain-defun)
    ("c" "Custom prompt function" copilot-chat-custom-prompt-function)
    ("R" "Review whole buffer" copilot-chat-review-whole-buffer)
+   ("q" "Quit" transient-quit-one)]])
+
+;;;###autoload (autoload 'copilot-chat-transient-agent "copilot-chat" nil t)
+(transient-define-prefix
+ copilot-chat-transient-agent () "Copilot chat agent menu."
+ [["Agent Mode"
+   ("e" "Enable agent mode" copilot-chat-agent-mode-enable)
+   ("d" "Disable agent mode" copilot-chat-agent-mode-disable)
+   ("t" "Toggle agent mode" copilot-chat-agent-mode-toggle)]
+  ["Auto-run Level"
+   ("n" "None" (lambda () (interactive) (copilot-chat-agent-set-auto-run-level 'none)))
+   ("r" "Read-only" (lambda () (interactive) (copilot-chat-agent-set-auto-run-level 'read-only)))
+   ("s" "Safe" (lambda () (interactive) (copilot-chat-agent-set-auto-run-level 'safe)))
+   ("w" "Write" (lambda () (interactive) (copilot-chat-agent-set-auto-run-level 'write)))
+   ("a" "All (dangerous)" (lambda () (interactive) (copilot-chat-agent-set-auto-run-level 'all)))]
+  ["Information"
+   ("S" "Statistics" copilot-chat-agent-statistics)
+   ("D" "Debug info" copilot-chat-agent-debug-info)
+   ("C" "Clear log" copilot-chat-agent-clear-log)
    ("q" "Quit" transient-quit-one)]])
 
 (provide 'copilot-chat-transient)

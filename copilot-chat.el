@@ -51,6 +51,7 @@
 (require 'copilot-chat-prompt-mode)
 (require 'copilot-chat-spinner)
 (require 'copilot-chat-transient)
+(require 'copilot-chat-agent)
 
 (defcustom copilot-chat-frontend 'org
   "Frontend to use with `copilot-chat'.  Can be org, markdown or shell-maker."

@@ -137,7 +137,12 @@ Argument CONTENT is copilot chat answer."
         (progn
           (funcall (map-elt shell :finish-output) t) ; the end
           (copilot-chat--shell-maker-copy-faces instance)
-          (setf (copilot-chat-first-word-answer instance) t))
+          (setf (copilot-chat-first-word-answer instance) t)
+          ;; Process response for agent commands if agent mode is enabled
+          (when (and (boundp 'copilot-chat-agent-mode) copilot-chat-agent-mode)
+            (require 'copilot-chat-agent)
+            (let ((full-response (copilot-chat-curl-answer (copilot-chat--backend instance))))
+              (copilot-chat-agent-process-response full-response instance))))
       (progn
         (with-current-buffer (copilot-chat--shell-maker-tmp-buf instance)
           (goto-char (point-max))

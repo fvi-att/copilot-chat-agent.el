@@ -1,14 +1,9 @@
-#+TITLE: Copilot Chat for Emacs
-#+AUTHOR: Cédric Chépied
-
-[[https://melpa.org/#/copilot-chat][https://melpa.org/packages/copilot-chat-badge.svg]]
-[[https://stable.melpa.org/#/copilot-chat][https://stable.melpa.org/packages/copilot-chat-badge.svg]]
-[[https://github.com/chep/copilot-chat.el/graphs/contributors][https://img.shields.io/github/contributors/chep/copilot-chat.el.svg]]
+#+TITLE: Copilot Chat for Emacs with Agent Mode
+#+AUTHOR: fvi-att (for agent-mode) Cédric Chépied (for
 
 * Description
-This plugin allows you to chat with GitHub copilot.
-
-[[file:chat.gif]]
+This plugin allows you to chat with GitHub copilot with Agent mode.
+This feature is still WORKING IN PROGRESS.
 
 Feel free to contribute, report issues or discuss new features.
 
@@ -112,6 +107,87 @@ Selected buffers will be sent with each prompt until you remove them.
 
 ** Transient
 You can call ~(copilot-chat-transient)~ to open transient menu. Almost all functions are accessible.
+
+** Agent Mode
+Agent Mode allows Copilot to automatically execute shell commands suggested in its responses. This feature includes safety mechanisms to prevent dangerous operations.
+
+*** Enabling Agent Mode
+#+begin_src emacs-lisp
+;; Enable agent mode
+(copilot-chat-agent-mode-enable)
+
+;; Or toggle agent mode
+(copilot-chat-agent-mode-toggle)
+
+;; Check if agent mode is enabled
+(copilot-chat-agent-mode-p)
+#+end_src
+
+*** Auto-run Levels
+Set the auto-execution level based on your security preferences:
+
+#+begin_src emacs-lisp
+;; Set auto-run level (interactive)
+(copilot-chat-agent-set-auto-run-level 'read-only)
+
+;; Or set via customization
+(setq copilot-chat-agent-auto-run-level 'safe)
+#+end_src
+
+Available levels:
+- ~none~ - No automatic execution (manual confirmation required)
+- ~read-only~ - Only safe read commands (~ls~, ~cat~, ~git status~, etc.)
+- ~safe~ - Safe commands that don't destroy files (~mkdir~, ~touch~, ~git add~, etc.)
+- ~write~ - Commands that can modify files (with restrictions)
+- ~all~ - All commands except explicitly forbidden ones (dangerous, not recommended)
+
+*** Using Agent Mode
+1. Enable agent mode: ~(copilot-chat-agent-mode-enable)~
+2. Set desired auto-run level: ~(copilot-chat-agent-set-auto-run-level 'read-only)~
+3. Ask Copilot to help with tasks that involve shell commands
+4. Commands in code blocks will be automatically detected and executed based on your safety level
+
+*** Example Usage
+#+begin_example
+User: "Show me the current directory contents and create a new directory called 'test'"
+
+Copilot: "I'll help you with that:
+
+```bash
+ls -la
+mkdir test
+ls -la
+```
+"
+
+With agent mode enabled and level set to 'safe':
+- `ls -la` will execute automatically (read-only command)
+- `mkdir test` will execute automatically (safe command)
+- `ls -la` will execute automatically to show the result
+#+end_example
+
+*** Safety Features
+- Command classification by safety level
+- Path traversal protection
+- Forbidden command blacklist
+- User confirmation for unsafe operations
+- Execution logging and statistics
+- Session-based temporary permissions
+
+*** Agent Mode Functions
+- ~(copilot-chat-agent-mode-enable)~ - Enable agent mode
+- ~(copilot-chat-agent-mode-disable)~ - Disable agent mode
+- ~(copilot-chat-agent-mode-toggle)~ - Toggle agent mode
+- ~(copilot-chat-agent-set-auto-run-level LEVEL)~ - Set auto-execution level
+- ~(copilot-chat-agent-statistics)~ - Display execution statistics
+- ~(copilot-chat-agent-debug-info)~ - Show debug information
+- ~(copilot-chat-agent-clear-log)~ - Clear execution log
+
+*** Accessing via Transient Menu
+Agent mode functions are available through the transient menu:
+#+begin_src emacs-lisp
+(copilot-chat-transient)  ; Main menu -> "A" for Agent
+#+end_src
 
 ** Functions
 *** Basic functions
@@ -254,6 +330,39 @@ You can customize the appearance of the buffer list by modifying these faces:
 - ~g~ refresh list.
 - ~q~ bury buffer and delete window.
 
+
+* Testing
+** Running Tests
+You can run the test suite using the ERT framework:
+
+#+begin_src emacs-lisp
+;; Run all tests
+(ert-run-tests-batch "test-")
+
+;; Or run specific test files
+(load-file "tests/test-copilot-chat-prompt-mode-agent.el")
+(load-file "tests/test-copilot-chat-shell-maker-agent.el")
+(load-file "tests/test-copilot-chat-transient-agent.el")
+(load-file "tests/test-copilot-chat-main-agent.el")
+
+;; Run all loaded tests
+(ert-run-tests-batch-and-exit)
+#+end_src
+
+Or from the command line:
+#+begin_example
+emacs -batch -l ert -l tests/test-copilot-chat-prompt-mode-agent.el -f ert-run-tests-batch-and-exit
+emacs -batch -l ert -l tests/test-copilot-chat-shell-maker-agent.el -f ert-run-tests-batch-and-exit
+emacs -batch -l ert -l tests/test-copilot-chat-transient-agent.el -f ert-run-tests-batch-and-exit
+emacs -batch -l ert -l tests/test-copilot-chat-main-agent.el -f ert-run-tests-batch-and-exit
+#+end_example
+
+** Test Coverage
+The test suite covers:
+- Agent mode integration in prompt mode (~test-copilot-chat-prompt-mode-agent.el~)
+- Agent mode integration in shell-maker mode (~test-copilot-chat-shell-maker-agent.el~)
+- Agent transient menu functionality (~test-copilot-chat-transient-agent.el~)
+- Main agent integration (~test-copilot-chat-main-agent.el~)
 
 * Notes
 This plugin is unofficial and based on Copilot Chat for neovim repository: https://github.com/CopilotC-Nvim/CopilotChat.nvim
