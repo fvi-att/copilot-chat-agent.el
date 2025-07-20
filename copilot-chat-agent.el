@@ -87,7 +87,7 @@ If nil, use the instance directory."
     "which" "whereis" "man" "help"
     "echo" "printf" "date" "pwd" "whoami"
     "wc" "sort" "uniq" "awk" "cut"
-    "file" "stat" "lsof" "curl")
+    "file" "stat" "lsof")
   "List of read-only commands that are safe to execute automatically.")
 
 (defvar copilot-chat-agent-safe-commands
@@ -99,16 +99,16 @@ If nil, use the instance directory."
   "List of safe commands that create or build but don't destroy.")
 
 (defvar copilot-chat-agent-write-commands
-  '("mv" "rename" "chmod" "chown"
+  '("rename"
     "git rm" "git mv" "git reset"
     "npm uninstall" "pip uninstall"
     "make clean" "make install")
   "List of write commands that can modify or remove files.")
 
 (defvar copilot-chat-agent-dangerous-commands
-  '("rm" "rmdir" "dd" "mkfs" "fdisk"
+  '("chmod" "chown" "mv" "rm" "rmdir" "dd" "mkfs" "fdisk"
     "sudo" "su" "passwd" "useradd" "userdel"
-    "wget" "ssh" "scp" "rsync"
+    "wget" "curl" "ssh" "scp" "rsync"
     "kill" "killall" "pkill"
     "iptables" "systemctl" "service")
   "List of dangerous commands that require careful consideration.")
@@ -135,18 +135,53 @@ If nil, use the instance directory."
 
 (defun copilot-chat-agent--classify-command (command)
   "Classify COMMAND into safety categories.
-Returns one of: read-only, safe, write, dangerous, forbidden, unknown."
-  (let ((cmd (car (split-string command))))
+Returns one of: read-only, safe, write, dangerous, forbidden."
+  (let ((trimmed-command (string-trim command)))
     (cond
-     ((member command copilot-chat-agent-forbidden-commands) 'forbidden)
-     ((cl-some (lambda (forbidden) 
-                 (string-match-p (regexp-quote forbidden) command))
+     ;; 1. Check for explicitly forbidden commands (exact match first)
+     ((member trimmed-command copilot-chat-agent-forbidden-commands)
+      'forbidden)
+     ((cl-some (lambda (cmd) (string-prefix-p cmd trimmed-command))
                copilot-chat-agent-forbidden-commands) 'forbidden)
-     ((member cmd copilot-chat-agent-dangerous-commands) 'dangerous)
-     ((member cmd copilot-chat-agent-write-commands) 'write)
-     ((member cmd copilot-chat-agent-safe-commands) 'safe)
-     ((member cmd copilot-chat-agent-read-only-commands) 'read-only)
-     (t 'unknown))))
+
+     ;; 2. Check for dangerous patterns in pipes and exec
+     ((string-match-p "xargs +\\(rm\\|kill\\|mv\\)" trimmed-command)
+      'dangerous)
+     ((string-match-p "xargs +kill +-[0-9]+" trimmed-command)
+      'dangerous)
+     ((string-match-p "-exec +\\(rm\\|kill\\|mv\\)" trimmed-command)
+      'dangerous)
+     ((string-match-p "|\\s*\\(sh\\|bash\\|zsh\\|csh\\)\\b" trimmed-command)
+      'dangerous)
+
+     ;; 3. Check for dangerous redirection patterns (writing to system files)
+     ((string-match-p "> */etc/" trimmed-command)
+      'dangerous)
+     ((string-match-p "> */dev/" trimmed-command)
+      'dangerous)
+
+     ;; 4. Check for safe redirection (output redirection implies safe file creation)
+     ((string-match-p ">" trimmed-command)
+      'safe)
+
+     ;; 4. Classify based on command matching (including compound commands)
+     (t
+      (let ((best-match nil)
+            (best-category nil))
+        ;; Check all command lists and find the longest matching prefix
+        (dolist (cmd-list (list 
+                           (cons copilot-chat-agent-dangerous-commands 'dangerous)
+                           (cons copilot-chat-agent-write-commands 'write)
+                           (cons copilot-chat-agent-safe-commands 'safe)
+                           (cons copilot-chat-agent-read-only-commands 'read-only)))
+          (dolist (cmd (car cmd-list))
+            (when (string-prefix-p cmd trimmed-command)
+              (when (or (null best-match) (> (length cmd) (length best-match)))
+                (setq best-match cmd
+                      best-category (cdr cmd-list))))))
+        
+        ;; Return the best match, or dangerous if no match found
+        (or best-category 'dangerous))))))
 
 (defun copilot-chat-agent--should-auto-execute-p (command)
   "Return non-nil if COMMAND should be executed automatically."
@@ -228,7 +263,7 @@ Works with different backends (curl, request)."
       (with-current-buffer (copilot-chat-chat-buffer instance)
         (let ((content (buffer-string)))
           ;; Extract only the last response (after last prompt)
-          (if (string-match "\\*\\* \\*\\[.*\\]\\* Copilot.*\n\\([\\s\\S]*\\)\\'" content)
+          (if (string-match "\\*\\* \\*\[.*\\].* Copilot.*\\n\\([\\s\\S]*\\)\\'" content)
               (match-string 1 content)
             content))))
      ;; Fallback - return empty string
