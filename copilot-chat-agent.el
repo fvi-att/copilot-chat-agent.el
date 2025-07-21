@@ -374,17 +374,27 @@ Returns non-nil to continue processing, nil to stop."
     (copilot-chat-agent--execute-and-display command instance)
     t)
    (t
+    (when (and instance (copilot-chat-chat-buffer instance))
+      (copilot-chat--write-buffer instance
+                                (format "\n*** Confirm to execute command:\n#+BEGIN_SRC shell\n%s\n#+END_SRC\n" command)
+                                nil))
     (let ((choice (copilot-chat-agent--confirm-command command)))
       (pcase choice
-        ('execute 
+        ('execute
          (copilot-chat-agent--execute-and-display command instance)
          t)
-        ('skip t)
+        ('skip
+         (when (and instance (copilot-chat-chat-buffer instance))
+           (copilot-chat--write-buffer instance "\n*** Skipped command execution.\n" nil))
+         t)
         ('always-yes
          (push command copilot-chat-agent-session-permissions)
          (copilot-chat-agent--execute-and-display command instance)
          t)
-        ('quit nil)
+        ('quit
+         (when (and instance (copilot-chat-chat-buffer instance))
+           (copilot-chat--write-buffer instance "\n*** Aborted command execution.\n" nil))
+         nil)
         (_ t))))))
 
 (defun copilot-chat-agent--execute-and-display (command instance)

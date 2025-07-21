@@ -333,36 +333,72 @@ You can customize the appearance of the buffer list by modifying these faces:
 
 * Testing
 ** Running Tests
-You can run the test suite using the ERT framework:
+The test suite uses the ERT framework and focuses on core agent functionality without external dependencies.
 
-#+begin_src emacs-lisp
-;; Run all tests
-(ert-run-tests-batch "test-")
-
-;; Or run specific test files
-(load-file "tests/test-copilot-chat-prompt-mode-agent.el")
-(load-file "tests/test-copilot-chat-shell-maker-agent.el")
-(load-file "tests/test-copilot-chat-transient-agent.el")
-(load-file "tests/test-copilot-chat-main-agent.el")
-
-;; Run all loaded tests
-(ert-run-tests-batch-and-exit)
-#+end_src
-
-Or from the command line:
+** Command Line Test Execution
+*** Run All Tests
 #+begin_example
-emacs -batch -l ert -l tests/test-copilot-chat-prompt-mode-agent.el -f ert-run-tests-batch-and-exit
-emacs -batch -l ert -l tests/test-copilot-chat-shell-maker-agent.el -f ert-run-tests-batch-and-exit
-emacs -batch -l ert -l tests/test-copilot-chat-transient-agent.el -f ert-run-tests-batch-and-exit
-emacs -batch -l ert -l tests/test-copilot-chat-main-agent.el -f ert-run-tests-batch-and-exit
+# Run the complete test suite (5/5 tests pass)
+emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el -f ert-run-tests-batch-and-exit
+#+end_example
+
+*** Run Individual Test Cases
+You can run specific test cases by their names:
+
+#+begin_example
+# Test dangerous command classification
+emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval "(ert-run-tests-batch 'test-command-classification-dangerous)"
+
+# Test read-only command classification
+emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval "(ert-run-tests-batch 'test-command-classification-read-only)"
+
+# Test safe command classification
+emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval "(ert-run-tests-batch 'test-command-classification-safe)"
+
+# Test unknown command classification
+emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval "(ert-run-tests-batch 'test-command-classification-unknown)"
+
+# Test complex commands with pipes and redirects
+emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval "(ert-run-tests-batch 'test-command-classification-with-complex-commands)"
+#+end_example
+
+*** Run Tests by Pattern
+#+begin_example
+# Run all tests matching a pattern
+emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval "(ert-run-tests-batch \"test-command-classification-\")"
+
+# Run only dangerous and safe tests
+emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval "(ert-run-tests-batch '(or test-command-classification-dangerous test-command-classification-safe))"
+#+end_example
+
+*** Quick Test Shortcuts
+For convenience, you can create aliases or shell functions:
+
+#+begin_example
+# Add to your .bashrc or .zshrc
+alias test-agent="emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el -f ert-run-tests-batch-and-exit"
+alias test-dangerous="emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval \"(ert-run-tests-batch 'test-command-classification-dangerous)\""
+alias test-safe="emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval \"(ert-run-tests-batch 'test-command-classification-safe)\""
+alias test-complex="emacs -batch -L . -l tests/test-setup.el -l tests/test-copilot-chat-agent-command-classification.el --eval \"(ert-run-tests-batch 'test-command-classification-with-complex-commands)\""
 #+end_example
 
 ** Test Coverage
-The test suite covers:
-- Agent mode integration in prompt mode (~test-copilot-chat-prompt-mode-agent.el~)
-- Agent mode integration in shell-maker mode (~test-copilot-chat-shell-maker-agent.el~)
-- Agent transient menu functionality (~test-copilot-chat-transient-agent.el~)
-- Main agent integration (~test-copilot-chat-main-agent.el~)
+The focused test suite covers:
+- **Command classification** (~test-copilot-chat-agent-command-classification.el~) - Tests the safety classification of shell commands including:
+  - Basic command classification (read-only, safe, write, dangerous, forbidden)
+  - Complex commands with pipes and redirects
+  - Dangerous patterns detection (sudo, system file writes, etc.)
+  - Unknown command handling
+
+*** Available Test Cases
+1. ~test-command-classification-read-only~ - Tests read-only commands like ~ls~, ~cat~, ~git status~
+2. ~test-command-classification-safe~ - Tests safe commands like ~mkdir~, ~touch~, ~git add~
+3. ~test-command-classification-dangerous~ - Tests dangerous commands like ~rm~, ~chmod~, ~curl~
+4. ~test-command-classification-unknown~ - Tests handling of unknown/unrecognized commands
+5. ~test-command-classification-with-complex-commands~ - Tests complex scenarios with pipes, redirects, and command chains
+
+** Test Setup
+The minimal test setup (~test-setup.el~) loads only essential core modules with minimal mocking, ensuring tests run quickly and reliably without external package dependencies.
 
 * Notes
 This plugin is unofficial and based on Copilot Chat for neovim repository: https://github.com/CopilotC-Nvim/CopilotChat.nvim

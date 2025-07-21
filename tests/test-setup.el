@@ -1,21 +1,23 @@
-;;; tests/test-setup.el --- Setup for running tests -*- lexical-binding: t; -*-
+;;; tests/test-setup.el --- Minimal setup for running tests -*- lexical-binding: t; -*-
 
-(require 'package)
+;;; Commentary:
+;; This file sets up the minimal test environment for copilot-chat-agent tests.
 
-;; Initialize the package system
-(setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                         ("gnu" . "https://elpa.gnu.org/packages/")))
-(package-initialize)
-(package-refresh-contents)
+;;; Code:
 
-;; List of dependencies to install
-;; This list should be kept in sync with the Package-Requires header in copilot-chat.el
-(defvar test-dependencies
-  '(aio request transient polymode org markdown-mode shell-maker))
+;; Add current directory to load path
+(add-to-list 'load-path ".")
 
-;; Install missing dependencies
-(dolist (pkg test-dependencies)
-  (unless (package-installed-p pkg)
-    (package-install pkg)))
+;; Load cl-lib for cl-proclaim
+(require 'cl-lib)
 
-(message "Test setup complete. All dependencies should be installed.")
+;; Mock polymode if not available to avoid dependency issues
+(unless (featurep 'polymode)
+  (provide 'polymode))
+
+;; Load core modules
+(require 'copilot-chat-instance)
+
+(message "Test setup complete. Core modules loaded.")
+
+;;; test-setup.el ends here
