@@ -300,18 +300,57 @@ Returns a list (exit-code output error-output)."
 
 (defun copilot-chat-agent--confirm-command (command)
   "Ask user for confirmation to execute COMMAND.
-Returns one of: execute, skip, always-yes, quit."
+Returns one of: execute, skip, always-yes, quit, edit."
   (let ((category (copilot-chat-agent--classify-command command)))
     (message "Execute command [%s]: %s" category command)
+    (message "Available choices: y, n, e, a, q")  ; デバッグ用メッセージ
     (let ((choice (read-char-choice 
-                   "Execute? (y)es, (n)o, (a)lways yes, (q)uit: "
-                   '(?y ?n ?a ?q))))
+                   "Execute? (y)es, (n)o, (e)dit, (a)lways yes, (q)uit: "
+                   '(?y ?n ?e ?a ?q))))
+      (message "User selected: %c (%s)" choice choice)  ; デバッグ用メッセージ
       (pcase choice
-        (?y 'execute)
-        (?n 'skip) 
-        (?a 'always-yes)
-        (?q 'quit)
-        (_ 'skip)))))
+        (?y 
+         (message "Processing: execute")
+         'execute)
+        (?n 
+         (message "Processing: skip")
+         'skip) 
+        (?e 
+         (message "Processing: edit")
+         'edit)
+        (?a 
+         (message "Processing: always-yes")
+         'always-yes)
+        (?q 
+         (message "Processing: quit")
+         'quit)
+        (_ 
+         (message "Processing: default (skip)")
+         'skip)))))
+
+(defun copilot-chat-agent--edit-command (command)
+  "Allow user to edit COMMAND and return the edited version.
+Returns nil if user cancels editing."
+  (let ((edited-command (read-string "Edit command: " command)))
+    (if (string-empty-p (string-trim edited-command))
+        nil
+      edited-command)))
+
+(defun copilot-chat-agent-test-confirm ()
+  "Test function for debugging confirm command selection."
+  (interactive)
+  (message "Starting confirm test...")
+  (let ((choice (read-char-choice 
+                 "Test: (y)es, (n)o, (e)dit, (a)lways yes, (q)uit: "
+                 '(?y ?n ?e ?a ?q))))
+    (message "Test result - choice: %c (%d)" choice choice)
+    (pcase choice
+      (?y (message "Test: Y selected"))
+      (?n (message "Test: N selected")) 
+      (?e (message "Test: E selected - SUCCESS!"))
+      (?a (message "Test: A selected"))
+      (?q (message "Test: Q selected"))
+      (_ (message "Test: Unknown selection: %c" choice)))))
 
 ;;; Main Agent Functions
 
@@ -387,6 +426,19 @@ Returns non-nil to continue processing, nil to stop."
          (when (and instance (copilot-chat-chat-buffer instance))
            (copilot-chat--write-buffer instance "\n*** Skipped command execution.\n" nil))
          t)
+        ('edit
+         (let ((edited-command (copilot-chat-agent--edit-command command)))
+           (if edited-command
+               (progn
+                 (when (and instance (copilot-chat-chat-buffer instance))
+                   (copilot-chat--write-buffer instance
+                                             (format "\n*** Edited command:\n#+BEGIN_SRC shell\n%s\n#+END_SRC\n" edited-command)
+                                             nil))
+                 (copilot-chat-agent--execute-and-display edited-command instance)
+                 t)
+             (when (and instance (copilot-chat-chat-buffer instance))
+               (copilot-chat--write-buffer instance "\n*** Command editing cancelled.\n" nil))
+             t)))
         ('always-yes
          (push command copilot-chat-agent-session-permissions)
          (copilot-chat-agent--execute-and-display command instance)

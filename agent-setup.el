@@ -10,7 +10,9 @@
 ;; Load copilot-chat and agent modules
 (add-to-list 'load-path ".")
 (require 'copilot-chat)
-(require 'copilot-chat-agent)
+
+;; Load agent module from source file to ensure latest version
+(load-file "./copilot-chat-agent.el")
 
 ;; Enable agent mode
 (copilot-chat-agent-mode-enable)
@@ -22,6 +24,12 @@
 (message "=== Copilot Chat Agent Setup Complete ===")
 (message "Agent mode: %s" (if copilot-chat-agent-mode "enabled" "disabled"))
 (message "Auto-run level: %s" copilot-chat-agent-auto-run-level)
+
+;; Verify edit functionality is loaded
+(if (fboundp 'copilot-chat-agent--edit-command)
+    (message "✓ Command edit functionality: LOADED")
+  (message "✗ Command edit functionality: NOT LOADED"))
+
 (message "Ready to test!")
 
 ;; Test function to verify integration
@@ -62,7 +70,13 @@ This command will show your public IP address."))
 (message "2. Ask Copilot to suggest shell commands")
 (message "3. Commands in #+BEGIN_SRC shell blocks will be detected")
 (message "4. Safe commands (like 'curl ifconfig.me') will execute automatically")
-(message "5. Use M-x copilot-chat-transient and press 'A' for agent settings")
+(message "5. For confirmation prompts, you can:")
+(message "   - (y)es: Execute command as is")
+(message "   - (e)dit: Edit command before executing")
+(message "   - (n)o: Skip command")
+(message "   - (a)lways yes: Always execute this command")
+(message "   - (q)uit: Stop processing commands")
+(message "6. Use M-x copilot-chat-transient and press 'A' for agent settings")
 (message "\n=== Test Command ===")
 (message "Run: M-x test-agent-with-sample-response")
 
