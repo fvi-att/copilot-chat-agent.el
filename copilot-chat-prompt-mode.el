@@ -65,14 +65,16 @@ Optional argument BUFFER is the buffer to write to,
 defaults to instance's chat buffer."
   (if buffer
       (with-current-buffer buffer
-        (insert data))
+        (let ((inhibit-read-only t))
+          (insert data)))
     (with-current-buffer (copilot-chat--get-buffer instance)
       (let ((write-fn
              (copilot-chat-frontend-write-fn (copilot-chat--get-frontend))))
         (when write-fn
-          (if save
-              (save-excursion (funcall write-fn data))
-            (funcall write-fn data)))))))
+          (let ((inhibit-read-only t))
+            (if save
+                (save-excursion (funcall write-fn data))
+              (funcall write-fn data))))))))
 
 (defun copilot-chat--format-data (instance content type)
   "Format the CONTENT according to the frontend.
