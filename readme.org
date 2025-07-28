@@ -6,107 +6,38 @@ This plugin allows you to chat with GitHub copilot with Agent mode.
 This feature is still WORKING IN PROGRESS.
 
 Feel free to contribute, report issues or discuss new features.
-
-* News
-** Copilot-Vision
-When using =gpt-4o= model, you can now send images to Copilot. Open it in emacs and add the buffer to the context like any other one.
-
-** Help wanted
-Bug reports and new ideas are very welcome.
-
-
-* Tips
-
-Many of you won't read this readme. And many of those who start to read won't read more than a few lines. So I'll write some tips here, at the beginning.
-
-** Yank
-When using the org frontend, you can yank code blocks provided by Copilot just as you would use the kill ring. Here's a simple configuration:
-
-#+begin_src emacs-lisp
-(use-package copilot-chat
-  …
-  :bind (:map global-map
-            ("C-c C-y" . copilot-chat-yank)
-            ("C-c M-y" . copilot-chat-yank-pop)
-            ("C-c C-M-y" . (lambda () (interactive) (copilot-chat-yank-pop -1))))
-  …)
-#+end_src
-
-** Find input section
-In copilot-chat buffer, you can use (or bind to a key) the interactive ~copilot-chat-goto-input~ function to place point at the beginning of the prompt area.
-
-** Start new instance
-Calling ~copilot-chat-display~ with prefix argument will let you choose instance or create a new one.
-
-** Save instance
-You can use ~copilot-chat-save~ and ~copilot-chat-load~ to save/restore a chat with its history.
+** Copilot-Chat
+this is fork of copilot-chat.el. If you want know detail, See https://github.com/chep/copilot-chat.el
 
 * Installation
-** Melpa
-Copilot-chat is available on melpa :
-
-#+begin_example
-M-x package-install RET copilot-chat RET
-#+end_example
-
-With =use-package= :
-#+begin_src emacs-lisp
-(use-package copilot-chat)
-
-#+end_src
-
-** Straight
 #+begin_src emacs-lisp
 (use-package copilot-chat
-  :straight (:host github :repo "chep/copilot-chat.el" :files ("*.el"))
-  :after (request org markdown-mode))
+  :load-path "/path/to/github-copilot-chat.el"
+  :commands (copilot-chat-display copilot-chat)
+  :config
+  (setq copilot-chat-frontend 'org)
+  (setq copilot-chat-backend 'curl)
+  
+  ;; Keybind（Optional）
+  :bind (:map global-map
+         ("C-c C-y" . copilot-chat-yank)
+         ("C-c M-y" . copilot-chat-yank-pop)
+         ("C-c C-M-y" . (lambda () (interactive) (copilot-chat-yank-pop -1)))))
+  ;; Install dependencies
+  (unless (package-installed-p 'aio)
+    (package-install 'aio))
+  (unless (package-installed-p 'request)
+    (package-install 'request))
+  (unless (package-installed-p 'transient)
+    (package-install 'transient))
+  (unless (package-installed-p 'polymode)
+    (package-install 'polymode))
+  (unless (package-installed-p 'markdown-mode)
+    (package-install 'markdown-mode))
+  (unless (package-installed-p 'shell-maker)
+    (package-install 'shell-maker))
 #+end_src
 
-** Manual
-Clone repository and eval files in emacs.
-
-* Configuration
-** GitHub
-You will need a GitHub account with access to copilot API. When sending the first prompt, you will need to authenticate to GitHub. Follow instructions and everything will be fine.
-
-** Backend
-~copilot-chat-backend~ can be set to ~'curl~ (default) or ~'request~.
-
-With curl, answers will be written token by token. Curl path can be set with `copilot-chat-curl-program` variable.
-With request library, the text is written when all data is read and this can be long.
-
-** Frontend
-Several frontends are available. You can select your favorite one by setting the ~copilot-chat-frontend~ variable to ~'org~ (default), ~'markdown~ or ~'shell-maker~.
-
-Try them and choose wisely.
-
-** Magit commits
-You can use copilot to generate your commit messages :
-
-#+begin_src emacs-lisp
-(add-hook 'git-commit-setup-hook 'copilot-chat-insert-commit-message)
-#+end_src
-
-Or call manually ~(copilot-chat-insert-commit-message)~ when in the commit message buffer.
-
-** Proxy
-The proxy can be configured with the curl backend. For the emacs-request backend, please refer to the emacs-request documentation if you need to configure a proxy.
-
-Use the variables ~copilot-chat-curl-proxy~, ~copilot-chat-curl-proxy-user-pass~, and ~copilot-chat-curl-proxy-insecure~ to set up a proxy. Refer to the documentation for each variable to learn how to use them.
-
-Proxies have not been thoroughly tested yet, so there may be bugs. Many options are missing for HTTPS proxies. Please open an issue if you need additional features.
-
-* Usage
-** Basic
-Start chatting with ~(copilot-chat-display)~ (alias ~(copilot-chat)~). Type your question in prompt, then press ~C-c C-c~ or ~C-c RET~.
-You may need to authenticate to GitHub. Follow instructions.
-
-You can select buffers that will be added as context in your prompt. Use ~copilot-chat-add-current-buffer~ and ~copilot-chat-del-current-buffer~. You can also manage buffers by using ~(copilot-chat-list)~. In the list, selected buffer will be highlighted using ~copilot-chat-list-selected-buffer-face~ which inherit from ~font-lock-keyword-face~.
-
-Selected buffers will be sent with each prompt until you remove them.
-
-** Transient
-You can call ~(copilot-chat-transient)~ to open transient menu. Almost all functions are accessible.
 
 ** Agent Mode
 Agent Mode allows Copilot to automatically execute shell commands suggested in its responses. This feature includes safety mechanisms to prevent dangerous operations.
@@ -189,71 +120,12 @@ Agent mode functions are available through the transient menu:
 (copilot-chat-transient)  ; Main menu -> "A" for Agent
 #+end_src
 
-** Functions
-*** Basic functions
-- ~(copilot-chat-display)~ (alias ~(copilot-chat)~) display copilot chat buffer. When using ~(copilot-chat-display)~ with a prefix argument, you'll be prompted to select which instance to use.
-- ~(copilot-chat-hide)~ hide copilot chat buffer.
-- ~(copilot-chat-reset)~ reset the current instance including history, frontend and included buffers (default). Use with prefix argument to preserve selected buffers.
-- ~(copilot-chat-switch-to-buffer)~ switch to Copilot Chat buffer, side by side with the current code editing buffer.
-- ~(copilot-chat-set-model)~ Select AI model to use for current instance.
-- ~(copilot-chat-kill-instance)~ Kill a selected Copilot chat instance and close its associated buffers.
-- ~(copilot-chat-save)~ Save current instance to a file.
-- ~(copilot-chat-load)~ Restore an instance from a previous save.
-
-*** Prompt
-- ~copilot-chat-goto-input~ place point at the beginning of the prompt area.
-- ~(copilot-chat-custom-mini-buffer)~ ask for a prompt in minibuffer and send it to copilot.
-- ~(copilot-chat-custom-prompt-selection)~ uses the provided prompt or asks for a prompt in minibuffer, then appends selection (or entire buffer), sends the result to copilot.
-- ~(copilot-chat-prompt-history-previous)~ insert previous prompt from history in prompt buffer.
-- ~(copilot-chat-prompt-history-next)~ insert next prompt from history in prompt buffer.
-- ~(copilot-chat-ask-and-insert)~ ask for a custom prompt and write answer in current buffer at point.
-
-*** Answer manipulation
-- ~(copilot-chat-yank)~ yank the last code block at point (org frontend only).
-- ~(copilot-chat-yank-pop)~ Replace last yank with previous block, or use argument to choose the block. Acts like ~(yank-pop)~ (org frontend only).
-- ~(copilot-chat-send-to-buffer)~ send a code block to a chosen buffer. Replace selection if any (org and markdown frontends only).
-- ~(copilot-chat-copy-code-at-point)~ copy current code block into kill ring.
-
-*** Buffers
-- ~(copilot-chat-add-current-buffer)~ add current buffer to copilot chat. Its content will be sent with every request.
-- ~(copilot-chat-del-current-buffer)~ remove current buffer.
-- ~(copilot-chat-list)~ open buffer list.
-- ~(copilot-chat-add-workspace)~ add all files in current workspace matching the instance's directory, respecting gitignore patterns if present. Buffer list is cleared before processing.
-- ~(copilot-chat-add-buffers)~ ask for buffers and add them to copilot chat context.
-- ~(copilot-chat-del-buffers)~ ask for buffers and remove them from copilot chat context.
-- ~(copilot-chat-add-buffers-in-current-window)~ add all buffers in current Emacs window to copilot chat.
-- ~(copilot-chat-add-file)~ add a specific file to copilot-chat buffers.
-- ~(copilot-chat-add-files-under-dir)~ Add all files with same suffix as current file under current directory. If there are more than 40 files, refuse to add and show warning message.
-
-*** Code helper functions
-- ~(copilot-chat-explain-symbol-at-line)~ ask Copilot to explain symbol under point.
-- ~(copilot-chat-explain)~ ask copilot to explain selected code.
-- ~(copilot-chat-review)~ ask copilot to review selected code.
-- ~(copilot-chat-doc)~ ask copilot to document selected code.
-- ~(copilot-chat-fix)~ ask copilot to fix selected code.
-- ~(copilot-chat-optimize)~ ask copilot to optimize selected code.
-- ~(copilot-chat-test)~ ask copilot to write tests for selected code.
-- ~(copilot-chat-explain-defun)~ ask copilot to explain current function under point.
-- ~(copilot-chat-custom-prompt-function)~ ask copilot to apply a custom prompt to the function body under point. Eg. instruct on how to refactor the function.
-- ~(copilot-chat-review-whole-buffer)~ ask copilot to review the current whole buffer. It can be used to review the full class, or, review the magit diff for my change, or other people's change.
-
-*** Magit
-- ~(copilot-chat-insert-commit-message)~ Insert in the current buffer a copilot generated commit message.
-- ~(copilot-chat-regenerate-commit-message)~ Regenerate the commit message, optionally providing additional instructions or a custom user prompt. This reuses previous context and history for improved results.
-
-*** Transient
-- ~(copilot-chat-transient)~ display main transient menu to access all functions.
-- ~(copilot-chat-transient-buffers)~ display transient menu for buffer management.
-- ~(copilot-chat-transient-code)~ display transient menu for code helper functions.
-- ~(copilot-chat-transient-magit)~ display transient menu for magit functions.
-
 *** Troubleshooting
 - ~(copilot-chat-quotas)~ display Github copilot current quotas.
 - ~(copilot-chat-frontend-clean)~ clean the frontend. Useful if you want to change the frontend.
 - ~(copilot-chat-clear-auth-cache)~ clear the auth cache for Copilot Chat. You will have to login again.
 - ~(copilot-chat-reset-models)~: Reset the model cache and fetches models again. Useful when GitHub adds new models or updates model capabilities.
 - If you cannot see your expected models in the set-model menu, visit https://github.com/copilot and check if the model is enabled for your account.
-
 
 ** Customizable variables
 All variables can be customized using ~M-x customize-group RET copilot-chat RET~.
@@ -302,16 +174,6 @@ Copilot Chat supports custom instructions from GitHub repository:
 - ~copilot-chat-use-copilot-instruction-files~ - Use custom instructions from ~.github/copilot-instructions.md~. Default is ~t~.
 - ~copilot-chat-use-git-commit-instruction-files~ - Use custom git commit instructions from ~.github/git-commit-instructions.md~. Default is ~t~.
 - ~copilot-chat-max-instruction-size~ - Maximum size in bytes of instruction files. Default is 65536 (64KB). Files exceeding this limit will be ignored. Set to ~nil~ for unlimited size.
-
-*** Git
-- ~copilot-chat-ignored-commit-files~ - List of file patterns to ignore when generating commit messages.
-- ~copilot-chat-use-difftastic~ - Whether to use difftastic for generating diffs. *Experimental*: Difftastic is designed for human reviewers; LLMs may understand standard git diff output better. Default is ~nil~ for this reason. You can enable it if you want to experiment and have ~difft~ installed.
-
-
-** Faces
-You can customize the appearance of the buffer list by modifying these faces:
-- ~copilot-chat-list-default-face~ - Face used for unselected buffers in the buffer list.
-- ~copilot-chat-list-selected-buffer-face~ - Face used for selected buffers in the buffer list.
 
 ** Key bindings
 *** Prompt buffer
